@@ -12,12 +12,12 @@ export const register = async(req,res)=>{
     const existinguser = await usermodel.findOne({email});
     if(existinguser){
        return res.json({succes:false, message:'user already exists'});
-    }  
+    }
     const hashedpassword = await bcrypt.hash(password,10);
     const user = new usermodel({ name ,email,password:hashedpassword});
-    await user.save(); 
+    await user.save();
 
-    const token = jwt.sign({id : user._id}, process.env.JWT_secret, {expiresIn : '7d'});
+    const token = jwt.sign({id : user._id}, process.env.JWT_SECRET, {expiresIn : '7d'});
 
     res.cookie('token', token, {
       httpOnly :true,
@@ -26,7 +26,7 @@ export const register = async(req,res)=>{
       maxAge : 7 * 24 * 60 * 60 * 1000,
     });
 
-    //sending mail 
+    //sending mail
     const mailOptions = {
       from : process.env.sender_email,
       to : email,
@@ -37,14 +37,14 @@ export const register = async(req,res)=>{
     await transporter.sendMail(mailOptions);
 
     return res.json({succes:true, message:'Registration successful'});
-  
+
   } catch (error) {
     return res.json({succes:false, message: error.message});
   }
 }
 
 export const login = async(req,res)=>{
-  
+
   const {email,password} = req.body;
 
   if(!email || !password){
@@ -56,7 +56,7 @@ export const login = async(req,res)=>{
 
     if(!user){
       return res.json({succes:false, message:'user not found'});
-    } 
+    }
 
     const validpassword = await bcrypt.compare(password, user.password);
 
@@ -64,7 +64,7 @@ export const login = async(req,res)=>{
       return res.json({succes:false, message:'invalid password'});
     }
 
-     const token = jwt.sign({id : user._id}, process.env.JWT_secret, {expiresIn : '7d'});
+     const token = jwt.sign({id : user._id}, process.env.JWT_SECRET, {expiresIn : '7d'});
      res.cookie('token', token, {
     httpOnly :true,
     secure : process.env.NODE_ENV === 'production',
@@ -92,7 +92,7 @@ export const logout = async(req,res)=>{
 
   }catch(error){
     return res.json({succes:false, message: error.message});
-  
+
   }
 }
 
@@ -106,7 +106,7 @@ export const sendverifyotp = async(req,res)=>{
       return res.json({succes:false, message:'user already verified'});
     }
     const otp = Math.floor( 100000 + Math.random()*900000);
-    
+
     user.verifyotp = otp;
     user.expiresIn = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
@@ -138,7 +138,7 @@ export const verifyemail = async(req,res)=>{
     const user = await usermodel.findById(userid);
     if(!user){
       return res.json({succes:false, message:'user not found'});
-    
+
     }
     if(user.verifyotp !== otp || user.verifyotp === ''){
       return res.json({succes:false, message:'invalid OTP'});
@@ -150,7 +150,7 @@ export const verifyemail = async(req,res)=>{
     user.isverified = true;
     user.verifyotp = '';
     user.expiresIn = 0;
- 
+
     await user.save();
     return res.json({succes:true, message:'Email verified successfully'});
 
@@ -169,12 +169,12 @@ export const isAuthenticated = async(req,res,next)=>{
   }
 }
 
-// reset otp 
+// reset otp
 export const resetpassotp = async(req,res)=>{
   const {email} = req.body;
   if(!email){
     return res.json({succes:false, message:'missing email'});
-  
+
   }
   try{
     const user = await usermodel.findOne({email});
@@ -182,7 +182,7 @@ export const resetpassotp = async(req,res)=>{
       return res.json({succes:false, message:'user not found'});
     }
     const otp = Math.floor( 100000 + Math.random()*900000);
-    
+
     user.verifyotp = otp;
     user.expiresIn = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
